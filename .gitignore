@@ -29,6 +29,8 @@ htmlcov/
 # Базы данных
 *.db
 *.sqlite3
+data/
+!data/.gitkeep
 
 # Файлы конфигурации с секретами
 .env
