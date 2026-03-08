@@ -3,13 +3,13 @@ all func-s with no commit.
 """
 
 import sqlite3
-from typing import List, Optional
+from typing import List
 
 from app.core.config import settings
 from app.core.logger import app_logger
+from app.exceptions import CustomException
 from app.models.price import PriceData
 from app.repositories.base import BaseRepository
-from app.exceptions import CustomException
 
 logger = app_logger.getChild("repositories.sqlite_repo")
 
@@ -17,7 +17,7 @@ logger = app_logger.getChild("repositories.sqlite_repo")
 class PriceRepository(BaseRepository[PriceData]):
     """Репозиторий для цен."""
 
-    def __init__(self, db_path: str = None):  # <-- Параметр с дефолтом None
+    def __init__(self, db_path: str = None):
         # Если путь не передан, берем из настроек
         if db_path is None:
             db_path = settings.DB_PATH
@@ -25,12 +25,13 @@ class PriceRepository(BaseRepository[PriceData]):
         super().__init__(db_path)
         logger.info("Price repository initialized with db: %s", db_path)
 
-    def add_many_repo(self, prices: List[PriceData]) -> int:
+    def add_many_repo(self, prices: dict[PriceData]) -> int:
         """
         Пакетная вставка с контролем ошибок.
         """
         try:
             with self._get_connection() as conn:
+                # зачем я передал список и собрал из него словарь?
                 cursor = conn.cursor()
                 data = [
                     (p.ticker, p.price, p.estimated_delivery_price, p.timestamp)

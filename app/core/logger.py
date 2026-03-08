@@ -3,9 +3,9 @@
 import logging
 import sys
 from pathlib import Path
-from logging.handlers import RotatingFileHandler
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 
-# прапка для логов
+# папка для логов
 log_dir = Path(__file__).parent.parent.parent / "logs"
 log_dir.mkdir(exist_ok=True)
 
@@ -34,30 +34,50 @@ def setup_logger(name: str = "deribit_parser") -> logging.Logger:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # Консольный обработчик (вывод в терминал)
+    # вывод в терминал
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)  # В консоль только INFO и выше
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # Файловый обработчик (все логи в файл)
-    file_handler = RotatingFileHandler(
-        log_dir / "app.log",
-        maxBytes=10_485_760,  # 10MB
-        backupCount=5,
+    # ЕЖЕДНЕВНЫЙ ФАЙЛОВЫЙ ОБРАБОТЧИК
+    daily_handler = TimedRotatingFileHandler(
+        filename=log_dir / "app.log",
+        when="midnight",  # новая копия каждый день в полночь
+        interval=1,  # каждый день
+        backupCount=30,  # хранить 30 дней логов
+        encoding="utf-8",
+        utc=False,  # использовать локальное время
+    )
+    daily_handler.setLevel(logging.DEBUG)
+    daily_handler.setFormatter(formatter)
+
+    # Настройка суффикса для файлов
+    daily_handler.suffix = "%Y-%m-%d"  # app.log.2026-03-08
+    logger.addHandler(daily_handler)
+
+    #  ОБРАБОТЧИК ДЛЯ ОШИБОК
+    error_daily_handler = TimedRotatingFileHandler(
+        filename=log_dir / "error.log",
+        when="midnight",
+        interval=1,
+        backupCount=30,
         encoding="utf-8",
     )
-    file_handler.setLevel(logging.DEBUG)  # В файл пишем всё
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    error_daily_handler.setLevel(logging.ERROR)
+    error_daily_handler.setFormatter(formatter)
+    error_daily_handler.suffix = "%Y-%m-%d"
+    logger.addHandler(error_daily_handler)
 
-    # Обработчик для ошибок (отдельный файл)
-    error_handler = RotatingFileHandler(
-        log_dir / "error.log", maxBytes=10_485_760, backupCount=5, encoding="utf-8"
+    # для защиты от слишком больших файлов в один день
+    size_handler = RotatingFileHandler(
+        log_dir / "app_size.log",
+        maxBytes=50_000_000,  # 50MB
+        backupCount=3,
+        encoding="utf-8",
     )
-    error_handler.setLevel(logging.ERROR)  # Только ошибки
-    error_handler.setFormatter(formatter)
-    logger.addHandler(error_handler)
+    size_handler.setLevel(logging.DEBUG)
+    size_handler.setFormatter(formatter)
 
     return logger
 

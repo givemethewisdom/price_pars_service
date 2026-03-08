@@ -1,23 +1,26 @@
-import asyncio
 import sys
 from pathlib import Path
-from app.tasks.price_tasks import fetch_all_prices_task
-from app.services.dependencies import price_repo_dep
-from app.services.futures_serv import get_ticker_serv, get_latest_future_serv
-from app.services.price_serv import fetch_all_prices_serv, get_newest_stock_price
+
+from app.core.cash import cache
+from app.core.logger import app_logger
 
 # путь к проекту для импорта
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.core.logger import app_logger
-
 logger = app_logger.getChild("main")
 
 
-async def main():
-    # Множественный fetch
-    pass
+async def get_futures_from_cache(instrument: str):
+    """Получить данные фьючерса из кэша"""
+    cache_key = f"futures:{instrument}"
+    return cache.get(cache_key)
+
+
+async def get_instruments_from_cache(ticker: str):
+    """получить инструмент из кэша например btc_usd"""
+    cache_key = f"ticker:{ticker}"
+    return cache.get(cache_key)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    pass

@@ -1,11 +1,12 @@
 """Price service for fetching and processing price data."""
 
 import asyncio
-from typing import List, Dict, Any
+from typing import List
 
 from app.api.deribit_client import DeribitClient
-from app.core.logger import app_logger
+from app.core.cash import cache
 from app.core.config import settings
+from app.core.logger import app_logger
 from app.exceptions import CustomException
 from app.models.price import PriceData
 from app.services.dependencies import price_repo_dep
@@ -21,6 +22,7 @@ async def fetch_all_prices_serv(tickers: List[str], base_url: str = None) -> dic
 
     async with DeribitClient(base_url) as client:
         tasks = [client.get_index_price(ticker) for ticker in tickers]
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         price_dicts = []  # словари из API
@@ -29,10 +31,18 @@ async def fetch_all_prices_serv(tickers: List[str], base_url: str = None) -> dic
 
         for ticker, result in zip(tickers, results):
             if isinstance(result, Exception):
-                logger.error("Failed to fetch %s %s", ticker, result)
+
+                logger.error("Failed to fetch %s %s", ticker, result, exc_info=True)
                 errors.append({"ticker": ticker, "error": str(result)})
+
             else:
                 price_dicts.append(result)
+
+                # cash
+                ticker = result["ticker"]
+                cache_key = f"ticker:{ticker}"
+                cache.set(cache_key, result)
+
                 # КОНВЕРТИРУЕМ В PriceData
                 from app.models.price import PriceData
 

@@ -66,63 +66,6 @@ class FuturesRepository:
             conn.commit()
             logger.debug("Futures table initialized")
 
-    def add_future_repo(self, data: Dict[str, Any]) -> int:
-        """
-        Add a single futures/perpetual record.
-
-        Args:
-            data: Dictionary with futures data from API
-
-        Returns:
-            ID of inserted row
-        """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-
-            # Извлекаем stats
-            stats = data.get("stats", {})
-
-            cursor.execute(
-                """
-                INSERT INTO futures (
-                    instrument_name, last_price, index_price, mark_price,
-                    timestamp, state, stats_high, stats_low, stats_price_change,
-                    stats_volume, stats_volume_usd, open_interest, funding_8h,
-                    current_funding, min_price, max_price, settlement_price,
-                    best_ask_price, best_ask_amount, best_bid_price,
-                    best_bid_amount, estimated_delivery_price, interest_value
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    data.get("instrument_name"),
-                    data.get("last_price"),
-                    data.get("index_price"),
-                    data.get("mark_price"),
-                    data.get("timestamp") // 1000,  # мс в секунды
-                    data.get("state"),
-                    stats.get("high"),
-                    stats.get("low"),
-                    stats.get("price_change"),
-                    stats.get("volume"),
-                    stats.get("volume_usd"),
-                    data.get("open_interest"),
-                    data.get("funding_8h"),
-                    data.get("current_funding"),
-                    data.get("min_price"),
-                    data.get("max_price"),
-                    data.get("settlement_price"),
-                    data.get("best_ask_price"),
-                    data.get("best_ask_amount"),
-                    data.get("best_bid_price"),
-                    data.get("best_bid_amount"),
-                    data.get("estimated_delivery_price"),
-                    data.get("interest_value"),
-                ),
-            )
-
-            conn.commit()
-            return cursor.lastrowid
-
     def add_many_futures_repo(self, futures_list: List[Dict[str, Any]]) -> int:
         """
         Add multiple futures/perpetual records.
@@ -183,7 +126,6 @@ class FuturesRepository:
             )
 
             conn.commit()
-            logger.info(f"Bulk added {len(data)} futures records")
             return len(data)
 
     def get_latest_future_repo(self, instrument_name: str) -> Optional[Dict[str, Any]]:
