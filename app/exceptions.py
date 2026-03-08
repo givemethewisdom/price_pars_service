@@ -1,7 +1,3 @@
-import sys
-from app.core.logger import app_logger
-
-
 class CustomException(Exception):
     """Простое исключение без логирования"""
 
