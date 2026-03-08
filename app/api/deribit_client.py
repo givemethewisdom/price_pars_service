@@ -52,6 +52,7 @@ class DeribitClient:
         try:
             async with asyncio.timeout(10):
                 async with self.session.get(url, params=params) as response:
+
                     data = await response.json()
                     logger.debug("get_index_price data %s", data)
 

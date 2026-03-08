@@ -12,7 +12,7 @@ logger = app_logger.getChild("cash")
 
 class RedisCache:
     def __init__(self):
-        """Инициализация подключения к Redis используя те же настройки что и Celery"""
+        """Инициализация подключения к Redis используя те же настройки что и Celery (*for pipeline)"""
         # те же параметры что и в Celery
         self.host = "localhost"
         self.port = 6379
