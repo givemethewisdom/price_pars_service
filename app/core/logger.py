@@ -1,7 +1,7 @@
 """Logging configuration for the application."""
 
 import logging
-import sys
+import sys  # noqa: F401
 from pathlib import Path
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 
@@ -35,7 +35,7 @@ def setup_logger(name: str = "deribit_parser") -> logging.Logger:
     )
 
     # вывод в терминал
-    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler = logging.StreamHandler(sys.stdout)  # noqa: F401
     console_handler.setLevel(logging.INFO)  # В консоль только INFO и выше
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
