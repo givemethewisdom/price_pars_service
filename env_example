@@ -1,0 +1,18 @@
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=1
+
+# Deribit API
+DERIBIT_API_URL=https://test.deribit.com/api/v2
+# Для продакшена:
+# DERIBIT_API_URL=https://www.deribit.com/api/v2
+
+# Database
+DB_PATH=/app/data/prices.db
+
+# Celery
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
+CELERY_POOL=threads
+CELERY_CONCURRENCY=2

@@ -1,13 +1,20 @@
 """Celery application configuration."""
 
+import os
+
 from celery import Celery
 from celery.schedules import crontab
+
+# для докер окружения
+broker_url = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+result_backend = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+
 
 # Создаем экземпляр Celery
 celery_app = Celery(
     "price_parser",
-    broker="redis://localhost:6379/0",  # URL Redis для брокера
-    backend="redis://localhost:6379/0",  # URL Redis для результатов
+    broker=broker_url,  # URL Redis для брокера
+    backend=result_backend,  # URL Redis для результатов
     include=["app.tasks.price_tasks", "app.tasks.db_cleanup"],  # где искать задачи
 )
 
