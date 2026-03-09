@@ -1,6 +1,7 @@
 """redis cash"""
 
 import json
+import os
 from typing import Optional, Any
 
 import redis
@@ -13,10 +14,10 @@ logger = app_logger.getChild("cash")
 class RedisCache:
     def __init__(self):
         """Инициализация подключения к Redis используя те же настройки что и Celery (*for pipeline)"""
-        # те же параметры что и в Celery
-        self.host = "localhost"
-        self.port = 6379
-        self.db = 1  # 1 вместо 0 чтобы не мешать Celery
+        # Если переменные не заданы - localhost (локальная разработка)
+        self.host = os.getenv("REDIS_HOST", "localhost")
+        self.port = int(os.getenv("REDIS_PORT", 6379))
+        self.db = int(os.getenv("REDIS_DB", 1))
 
         try:
             self.client = redis.Redis(

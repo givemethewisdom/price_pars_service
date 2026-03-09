@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.github
+
+# Environment
+.env
+.env.local
+.env.example
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Data
+data/
+*.db
+*.sqlite3
+
+# Docker
+docker-compose.yml
+.dockerignore
+README.md
+
+# Local development
+.venv
+venv
+env
+ENV
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
