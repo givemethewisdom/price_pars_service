@@ -4,6 +4,7 @@ import asyncio
 from typing import List
 
 from app.api.deribit_client import DeribitClient
+from app.broker.rabbit_publisher import RabbitPublisher
 from app.core.cash import cache
 from app.core.config import settings
 from app.core.logger import app_logger
@@ -13,11 +14,22 @@ from app.services.dependencies import price_repo_dep
 
 logger = app_logger.getChild("price_service")
 
+# ОДИН ЭКЗЕМПЛЯР НА ВЕСЬ СЕРВИС
+rabbit_publisher = RabbitPublisher(queue=settings.RABBIT_PRICE_QUEUE)
+
+"""подключаемся один раз при старте а не каждый раз в функции
+т.к. подключение даст доп. нагрузку на сборщик мусора и больше времени уйдет на
+соединение и разрыв чем на отправку сообщения."""
+
+rabbit_publisher.connect()
+
 
 async def fetch_all_prices_serv(tickers: List[str], base_url: str = None) -> dict:
     """
-    Fetch prices for multiple tickers concurrently and save it.
+    Fetch prices for multiple tickers concurrently, save it and push to rabbit queue.
     """
+
+    rabbit_publisher = RabbitPublisher(queue=settings.RABBIT_PRICE_QUEUE)
     base_url = base_url or settings.deribit_api_url
 
     async with DeribitClient(base_url) as client:
@@ -36,7 +48,10 @@ async def fetch_all_prices_serv(tickers: List[str], base_url: str = None) -> dic
                 errors.append({"ticker": ticker, "error": str(result)})
 
             else:
-                price_dicts.append(result)
+                price_dicts.append(
+                    result
+                )  # result хранит полный формат ответа от Deribit
+                logger.debug(f"price_dicts: {price_dicts}")
 
                 # cash
                 ticker = result["ticker"]
@@ -53,6 +68,18 @@ async def fetch_all_prices_serv(tickers: List[str], base_url: str = None) -> dic
                     timestamp=result["timestamp"],
                 )
                 price_objects.append(price_obj)
+
+                rabbit_message = {
+                    "type": "index_price",
+                    "instrument": result["ticker"],
+                    "price": result["price"],
+                    "estimated_delivery_price": result["estimated_delivery_price"],
+                    "timestamp": result["timestamp"],
+                    "source": "price_pars_service",
+                }
+
+                rabbit_publisher.publish(rabbit_message)
+                logger.info(" Sent %s to RabbitMQ", result["ticker"])
 
         if errors:
             logger.warning("Some fetches failed: %s", errors)
@@ -85,3 +112,14 @@ async def get_newest_stock_price(tickers: list[str]) -> List[PriceData]:
      - timestamp=1772349162
     """
     return price_repo_dep.get_latest_for_tickers_repo(tickers)
+
+
+def close_rabbitmq():
+    """Закрыть соединение с RabbitMQ при завершении"""
+    # global rabbit_publisher
+    if rabbit_publisher:
+        try:
+            rabbit_publisher.close()
+            # лог закрытия в rabbit_publisher.close()
+        except Exception as e:
+            logger.error("Error closing RabbitMQ: %s", e)

@@ -4,6 +4,10 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 @dataclass
 class Settings:
@@ -23,6 +27,13 @@ class Settings:
         "DB_PATH", str(Path(__file__).parent.parent.parent / "data" / "prices.db")
     )
     CELERY_TICKERS: list = None
+
+    # RabbitMQ
+    RABBIT_USER: str = os.getenv("RABBIT_USER", "guest")
+    RABBIT_PASS: str = os.getenv("RABBIT_PASS", "guest")
+    RABBIT_HOST: str = os.getenv("RABBIT_HOST", "localhost")
+    RABBIT_PORT: int = int(os.getenv("RABBIT_PORT", "5672"))
+    RABBIT_PRICE_QUEUE: str = os.getenv("RABBIT_PRICE_QUEUE", "task_price")
 
     def __post_init__(self):
         """этот метод вызывается после создания объекта"""

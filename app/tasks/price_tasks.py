@@ -33,7 +33,6 @@ def fetch_all_prices_task(self, tickers: List[str]) -> dict:
     try:
         result = asyncio.run(fetch_all_prices_serv(tickers))
 
-        # Логируем результат
         prices_count = len(result.get("prices", []))
         errors_count = len(result.get("errors", []))
 

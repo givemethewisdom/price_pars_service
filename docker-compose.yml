@@ -48,7 +48,7 @@ services:
     #на винде с другим не работает
     command: celery -A app.tasks.celery_app worker --loglevel=info -P threads
 
-  # Celery beat (если нужен)
+  # Celery beat
   celery_beat:
     build: .
     container_name: price_parser_celery_beat
@@ -71,7 +71,7 @@ services:
       - price_parser_network
     command: celery -A app.tasks.celery_app beat --loglevel=info
 
-  # Redis (свой экземпляр)
+  # Redis
   redis:
     image: redis:alpine
     container_name: price_parser_redis

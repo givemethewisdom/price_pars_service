@@ -19,7 +19,7 @@ class IndexWebSocketManager:
         self.index_handler = IndexHandler()
 
         # Только индексы
-        self.indices = ["btc_usd", "eth_usd", "sol_usd", "algo_usdc"]
+        self.indices = ["btc_usd", "eth_usd", "sol_usd"]
 
     async def start(self):
         """Запуск WebSocket клиента."""
@@ -45,10 +45,13 @@ class IndexWebSocketManager:
         try:
             while True:
                 await asyncio.sleep(30)  # проверка каждые 30 секунд
+                # проверка особо не нужна т.к. вебсокет отправляет данные в FastAPi приложение через Rabbit
+                # а сохраняет только свои с Celery для будущего функционала обработки. пока не буду убирать. Есть идеи
                 self._show_status()
 
         except KeyboardInterrupt:
             logger.info("Stopping...")
+            self.index_handler.close()  # соединение RabbitMQ
             await self.ws_client.close()
 
     def _show_status(self):
