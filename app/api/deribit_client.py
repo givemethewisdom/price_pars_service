@@ -85,6 +85,5 @@ class DeribitClient:
         async with self.session.get(url, params=params) as response:
             data = await response.json()
             result = data.get("result")
-            logger.info("get_ticker have data: %s", data)
 
         return result

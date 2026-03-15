@@ -1,14 +1,19 @@
 """Celery application configuration."""
 
+import atexit
 import os
 
 from celery import Celery
 from celery.schedules import crontab
 
+from app.services.price_serv import close_rabbitmq
+
 # для докер окружения
 broker_url = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 result_backend = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 
+# Должен закрывать соединение RabbitMQ при выходе из функции fetch_all_prices_serv
+atexit.register(close_rabbitmq)
 
 # Создаем экземпляр Celery
 celery_app = Celery(

@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Callable, Optional
+from typing import Dict, Callable, Optional
 
 import websockets
 
@@ -64,7 +64,6 @@ class DeribitWebSocket:
         self._reconnect_delay = 1
 
     async def connect(self):
-        """Установка WebSocket соединения"""
         try:
             self.ws = await websockets.connect(
                 self.ws_url, ping_interval=20, ping_timeout=20, close_timeout=10
@@ -73,12 +72,31 @@ class DeribitWebSocket:
             self.connection_id = f"ws_{datetime.now().timestamp()}"
             logger.info("WebSocket connected to %s", self.ws_url)
 
-            # слушатель сообщений (async но без await из-за сложного контекста запуска??? РАЗОБРАТЬСЯ)
+            # ВАЖНО: отправляем hello!
+            await self._send_hello()
+
             asyncio.create_task(self._listen())
 
         except Exception as e:
             logger.error("WebSocket connection failed: %s", e)
             await self._reconnect()
+
+    async def _send_hello(self):
+        """Отправка hello сообщения (обязательно для начала работы)"""
+        hello_msg = {
+            "jsonrpc": "2.0",
+            "id": self._next_id(),
+            "method": "public/hello",
+            "params": {
+                "client_name": "deribit_websocket_client",
+                "client_version": "1.0.0",
+            },
+        }
+        await self.ws.send(json.dumps(hello_msg))
+
+        # Ждем ответ (опционально)
+        response = await self.ws.recv()
+        logger.debug(f"Hello response: {response}")
 
     async def _listen(self):
         """Слушатель входящих сообщений"""
@@ -96,6 +114,7 @@ class DeribitWebSocket:
 
     async def _handle_message(self, message: dict):
         """Обработка входящих сообщений"""
+
         # Ответ на подписку/запрос
         if "id" in message:
             logger.debug(
@@ -120,7 +139,7 @@ class DeribitWebSocket:
         channel_type: ChannelType,
         instrument: str,
         callback: Callable,
-        interval: str = "100ms",
+        interval: str = "100ms",  # оказалось что индексные каналы работают в режиме raw и интервал не поддерживается)))
     ):
         """
         Подписка на канал
@@ -139,7 +158,7 @@ class DeribitWebSocket:
         if channel_type == ChannelType.INDEX:
             channel = f"{channel_type.value}.{instrument}"
         else:
-            channel = f"{channel_type.value}.{instrument}.{interval}"
+            channel = f"{channel_type.value}.{instrument}.{interval}"  # интервал не поддерживается для индексных каналов
 
         # Сохраняем подписку
         self.subscriptions[channel] = Subscription(
@@ -161,50 +180,6 @@ class DeribitWebSocket:
             return True
         except Exception as e:
             logger.error("Subscribe failed for %s:%s", channel, e)
-            return False
-
-    async def subscribe_many(self, subscriptions: List[dict]):
-        """
-        Пакетная подписка на несколько каналов
-
-        Args:
-            subscriptions: Список подписок [{"channel_type":..., "instrument":..., "callback":..., "interval":...}]
-        """
-        channels = []
-
-        for sub in subscriptions:
-            channel_type = sub["channel_type"]
-            instrument = sub["instrument"]
-            interval = sub.get("interval", "100ms")
-
-            if channel_type == ChannelType.INDEX:
-                channel = f"{channel_type.value}.{instrument}"
-            else:
-                channel = f"{channel_type.value}.{instrument}.{interval}"
-
-            channels.append(channel)
-            self.subscriptions[channel] = Subscription(
-                channel=channel,
-                callback=sub["callback"],
-                instrument=instrument,
-                interval=interval,
-            )
-
-        # Пакетная подписка
-        msg_id = self._next_id()
-        subscribe_msg = {
-            "jsonrpc": "2.0",
-            "method": "public/subscribe",
-            "params": {"channels": channels},
-            "id": msg_id,
-        }
-
-        try:
-            await self.ws.send(json.dumps(subscribe_msg))
-            logger.info("Subscribed to %s", len(channels), channels)
-            return True
-        except Exception as e:
-            logger.error("Batch subscribe failed: %s", e)
             return False
 
     async def unsubscribe(self, channel: str):
